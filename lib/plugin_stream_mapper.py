@@ -107,10 +107,41 @@ class PluginStreamMapper(StreamMapper):
             # TODO: Disable any options not compatible with this encoder
         # TODO: Add NVENC args
 
-    def build_filter_chain(self, stream_id):
+    def scale_resolution(self, stream_info: dict):
+        def get_test_resolution(settings):
+            target_resolution = settings.get_setting('target_resolution')
+            # Set the target resolution
+            custom_resolutions = settings.get_setting('custom_resolutions')
+            test_resolution = {
+                'width':  tools.resolution_map.get(target_resolution, {}).get('width'),
+                'height': tools.resolution_map.get(target_resolution, {}).get('height'),
+            }
+            if custom_resolutions:
+                test_resolution = {
+                    'width':  settings.get_setting('{}_width'.format(target_resolution)),
+                    'height': settings.get_setting('{}_height'.format(target_resolution)),
+                }
+            return test_resolution
+
+        # Get video width and height
+        vid_width = stream_info.get('width', stream_info.get('coded_width', 0))
+        vid_height = stream_info.get('height', stream_info.get('coded_height', 0))
+
+        # Get the test resolution
+        test_resolution = get_test_resolution(self.settings)
+
+        # Check if the streams resolution is greater than the test resolution
+        if int(vid_width) > int(test_resolution['width']) or int(vid_height) > int(test_resolution['height']):
+            return test_resolution['width'], test_resolution['height']
+
+        # Return none (nothing will be done)
+        return None, None
+
+    def build_filter_chain(self, stream_info, stream_id):
         """
         Builds a complex video filtergraph for the provided stream
 
+        :param stream_info:
         :param stream_id:
         :return:
         """
@@ -119,10 +150,17 @@ class PluginStreamMapper(StreamMapper):
         software_filters = []
         hardware_filters = []
 
-        # Apply software filters first
+        # Apply smart filters first
         if self.settings.get_setting('apply_smart_filters'):
             if self.settings.get_setting('autocrop_black_bars') and self.crop_value:
                 software_filters.append('crop={}'.format(self.crop_value))
+            if self.settings.get_setting('target_resolution'):
+                vid_width, vid_height = self.scale_resolution(stream_info)
+                if vid_width:
+                    # Apply scale with only width to keep aspect ratio
+                    software_filters.append('scale={}:-1'.format(vid_width))
+
+        # Apply custom software filters
         if self.settings.get_setting('apply_custom_filters'):
             for software_filter in self.settings.get_setting('custom_software_filters').splitlines():
                 if software_filter.strip():
@@ -190,8 +228,19 @@ class PluginStreamMapper(StreamMapper):
         # Ignore image video streams (will just copy them)
         if stream_info.get('codec_name').lower() in tools.image_video_codecs:
             return False
+
+        # Check if video filters need to be applied (build_filter_chain)
+        if self.settings.get_setting('apply_smart_filters'):
+            # Check if autocrop filter needs to be applied
+            if self.settings.get_setting('autocrop_black_bars') and self.crop_value:
+                return True
+            # Check if scale filter needs to be applied
+            if self.settings.get_setting('target_resolution'):
+                vid_width, vid_height = self.scale_resolution(stream_info)
+                if vid_width:
+                    return True
+
         # TODO: Check if the codec is already the correct format
-        # TODO: Check if video filters need to be applied (build_filter_chain)
         # TODO: Add override if settings say to force encoding
         # All other streams should be custom mapped
         return True
@@ -212,7 +261,7 @@ class PluginStreamMapper(StreamMapper):
             stream_encoding += self.settings.get_setting('custom_options').split()
         else:
             # Build complex filter
-            filter_id, filter_complex = self.build_filter_chain(stream_id)
+            filter_id, filter_complex = self.build_filter_chain(stream_info, stream_id)
             if filter_complex:
                 map_identifier = '[{}]'.format(filter_id)
                 # TODO: Apply the filter directly as it may be possible to have more than one video stream (low priority)

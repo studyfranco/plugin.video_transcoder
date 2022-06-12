@@ -28,7 +28,7 @@ TODO:
     - Add support for VAAPI 264
     - Add support for NVENC 264/265
     - Add advanced input forms for building custom ffmpeg queries
-    - Add input form for additional video filters (Or just leave this for the advanced mode)
+    - Add support for source bitrate matching on basic mode
 """
 
 import logging
@@ -205,9 +205,6 @@ def on_worker_process(data):
 
     # Get the path to the file
     abspath = data.get('file_in')
-    # TODO: Remove test path
-    abspath = '/library/black_bars_1080p.mp4'
-    print(abspath)
 
     # Get file probe
     probe = Probe(logger, allowed_mimetypes=['video'])
@@ -236,13 +233,10 @@ def on_worker_process(data):
 
         # Get generated ffmpeg args
         ffmpeg_args = mapper.get_ffmpeg_args()
-        print(ffmpeg_args)
 
         # Apply ffmpeg args to command
         data['exec_command'] = ['ffmpeg']
         data['exec_command'] += ffmpeg_args
-        print()
-        print(' '.join(data['exec_command']))
 
         # Set the parser
         parser = Parser(logger)
