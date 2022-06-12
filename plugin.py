@@ -37,6 +37,7 @@ import os
 from video_transcoder.lib import plugin_stream_mapper
 from video_transcoder.lib.ffmpeg import Parser, Probe
 from video_transcoder.lib.global_settings import GlobalSettings
+from video_transcoder.lib.encoders.libx import LibxEncoder
 from video_transcoder.lib.encoders.qsv import QsvEncoder
 from video_transcoder.lib.encoders.vaapi import VaapiEncoder
 
@@ -52,6 +53,8 @@ class Settings(PluginSettings):
         super(Settings, self).__init__(*args, **kwargs)
         self.settings = self.__build_settings_object()
         self.encoders = {
+            "libx265":    LibxEncoder(self),
+            "libx264":    LibxEncoder(self),
             "hevc_qsv":   QsvEncoder(self),
             "h264_qsv":   QsvEncoder(self),
             "hevc_vaapi": VaapiEncoder(self),
@@ -95,47 +98,32 @@ class Settings(PluginSettings):
 
         :return:
         """
-        # TODO: Fetch all encoder settings from encoder libs
+        # Fetch all encoder settings from encoder libs
+        libx_options = LibxEncoder.options()
         qsv_options = QsvEncoder.options()
         vaapi_options = VaapiEncoder.options()
         return {
+            **libx_options,
             **qsv_options,
             **vaapi_options
         }
 
     def __build_settings_object(self):
         # Global and main config options
-        global_settings = {
-            "mode":                  "basic",
-            "max_muxing_queue_size": 2048,
-        }
-        encoder_selection = {
-            "video_codec":   "hevc",
-            "video_encoder": "libx265",
-        }
+        global_settings = GlobalSettings.options()
+        main_options = global_settings.get('main_options')
+        encoder_selection = global_settings.get('encoder_selection')
         encoder_settings = self.__encoder_settings_object()
-        advanced_input_options = {
-            "main_options":     "",
-            "advanced_options": "-strict -2\n"
-                                "-max_muxing_queue_size 2048\n",
-            "custom_options":   "-preset slow\n"
-                                "-tune film\n"
-                                "-global_quality 23\n"
-                                "-look_ahead 1\n",
-        }
-        output_settings = {
-            "keep_container":      True,
-            "dest_container":      "mkv",
-            "autocrop_black_bars": False,
-        }
-        filter_settings = {
-        }
+        advanced_input_options = global_settings.get('advanced_input_options')
+        output_settings = global_settings.get('output_settings')
+        filter_settings = global_settings.get('filter_settings')
         return {
-            **global_settings,
+            **main_options,
             **encoder_selection,
             **encoder_settings,
             **advanced_input_options,
             **output_settings,
+            **filter_settings,
         }
 
 
