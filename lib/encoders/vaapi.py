@@ -64,11 +64,11 @@ class VaapiEncoder:
         }
 
     @staticmethod
-    def generate_default_args(enabled_hw_decoding=False):
+    def generate_default_args(settings):
         """
         Generate a list of args for using a VAAPI decoder
 
-        :param enabled_hw_decoding:
+        :param settings:
         :return:
         """
         # Set the hardware device

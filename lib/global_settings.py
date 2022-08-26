@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+# -*- coding:utf-8 -*-
+###
+# File: global_settings.py
+# Project: lib
+# File Created: Friday, 26th August 2022 5:06:41 pm
+# Author: Josh.5 (jsunnex@gmail.com)
+# -----
+# Last Modified: Friday, 26th August 2022 5:07:09 pm
+# Modified By: Josh.5 (jsunnex@gmail.com)
+###
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -221,7 +232,7 @@ class GlobalSettings:
 
     def get_apply_smart_filters_form_settings(self):
         values = {
-            "label":   "Enable plugin smart video filters",
+            "label":   "Enable plugin's smart video filters",
             "tooltip": "Provides some pre-configured FFmpeg filtergraphs",
         }
         if self.settings.get_setting('mode') not in ['standard']:

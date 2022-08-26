@@ -21,6 +21,11 @@
         If not, see <https://www.gnu.org/licenses/>.
 
 """
+"""
+Notes:
+    - Good breakdown on FFmpeg general args for QSV HW accel: 
+        https://gist.github.com/jackleaks/776d2de2688d238c95ed7eafb3d5bae8
+"""
 
 
 class QsvEncoder:
@@ -44,11 +49,11 @@ class QsvEncoder:
         }
 
     @staticmethod
-    def generate_default_args(enabled_hw_decoding=False):
+    def generate_default_args(settings):
         """
         Generate a list of args for using a QSV decoder
 
-        :param enabled_hw_decoding:
+        :param settings:
         :return:
         """
         # Encode only (no decoding)

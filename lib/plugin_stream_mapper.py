@@ -93,15 +93,15 @@ class PluginStreamMapper(StreamMapper):
         # Build hardware acceleration args based on encoder
         # Note: these are not applied to advanced mode - advanced mode was returned above
         if self.settings.get_setting('video_encoder') in LibxEncoder.encoders:
-            generic_kwargs, advanced_kwargs = LibxEncoder.generate_default_args(enabled_hw_decoding=False)
+            generic_kwargs, advanced_kwargs = LibxEncoder.generate_default_args(self.settings)
             self.set_ffmpeg_generic_options(**generic_kwargs)
             self.set_ffmpeg_advanced_options(**advanced_kwargs)
         elif self.settings.get_setting('video_encoder') in QsvEncoder.encoders:
-            generic_kwargs, advanced_kwargs = QsvEncoder.generate_default_args(enabled_hw_decoding=False)
+            generic_kwargs, advanced_kwargs = QsvEncoder.generate_default_args(self.settings)
             self.set_ffmpeg_generic_options(**generic_kwargs)
             self.set_ffmpeg_advanced_options(**advanced_kwargs)
         elif self.settings.get_setting('video_encoder') in self.vaapi_encoders:
-            generic_kwargs, advanced_kwargs = VaapiEncoder.generate_default_args(enabled_hw_decoding=True)
+            generic_kwargs, advanced_kwargs = VaapiEncoder.generate_default_args(self.settings)
             self.set_ffmpeg_generic_options(**generic_kwargs)
             self.set_ffmpeg_advanced_options(**advanced_kwargs)
             # TODO: Disable any options not compatible with this encoder

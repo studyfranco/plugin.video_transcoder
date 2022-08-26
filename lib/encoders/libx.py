@@ -44,11 +44,11 @@ class LibxEncoder:
         }
 
     @staticmethod
-    def generate_default_args(enabled_hw_decoding=False):
+    def generate_default_args(settings):
         """
-        Generate a list of args for using a QSV decoder
+        Generate a list of args for using a libx decoder
 
-        :param enabled_hw_decoding:
+        :param settings:
         :return:
         """
         # No default args required
@@ -59,11 +59,12 @@ class LibxEncoder:
     @staticmethod
     def generate_filtergraphs():
         """
-        Generate the required filter for enabling QSV HW acceleration
+        Generate the required filter for this encoder
+        No filters are required for libx encoders
 
         :return:
         """
-        return ["hwupload=extra_hw_frames=64,format=qsv"]
+        return []
 
     def args(self, stream_id):
         stream_encoding = []
