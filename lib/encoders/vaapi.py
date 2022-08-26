@@ -36,8 +36,9 @@ def list_available_vaapi_devices():
         for device in sorted(os.listdir(dir_path)):
             if device.startswith('render'):
                 device_data = {
-                    'hwaccel':        'vaapi',
-                    'hwaccel_device': os.path.join("/", "dev", "dri", device),
+                    'hwaccel':             'vaapi',
+                    'hwaccel_device':      device,
+                    'hwaccel_device_path': os.path.join("/", "dev", "dri", device),
                 }
                 decoders.append(device_data)
 
@@ -61,6 +62,8 @@ class VaapiEncoder:
             "constant_quantizer_scale":   "25",
             "constant_quality_scale":     "23",
             "average_bitrate":            "5",
+            "vaapi_device":               "none",
+            "enabled_hw_decoding":        True,
         }
 
     @staticmethod
@@ -76,16 +79,27 @@ class VaapiEncoder:
         if not hardware_devices:
             # Return no options. No hardware device was found
             raise Exception("No VAAPI device found")
-        hardware_device = hardware_devices[0]
+
+        hardware_device = None
+        # If we have configured a hardware device
+        if settings.get_setting('vaapi_device') not in ['none']:
+            # Attempt to match to that configured hardware device
+            for hw_device in hardware_devices:
+                if settings.get_setting('vaapi_device') == hw_device.get('hwaccel_device'):
+                    hardware_device = hw_device
+                    break
+        # If no matching hardware device is set, then select the first one
+        if not hardware_device:
+            hardware_device = hardware_devices[0]
 
         # Check if we are using a VAAPI encoder also...
-        if enabled_hw_decoding:
-            # Set a named global device that can be used used with various params
+        if settings.get_setting('enabled_hw_decoding'):
+            # Set a named global device that can be used with various params
             dev_id = 'vaapi0'
-            # Configure args such that when the input may or may not be hardware decodable we can do:
+            # Configure args such that when the input may or may not be able to be decoded with hardware we can do:
             #   REF: https://trac.ffmpeg.org/wiki/Hardware/VAAPI#Encoding
             generic_kwargs = {
-                "-init_hw_device":        "vaapi={}:{}".format(dev_id, hardware_device.get('hwaccel_device')),
+                "-init_hw_device":        "vaapi={}:{}".format(dev_id, hardware_device.get('hwaccel_device_path')),
                 "-hwaccel":               "vaapi",
                 "-hwaccel_output_format": "vaapi",
                 "-hwaccel_device":        dev_id,
@@ -97,7 +111,7 @@ class VaapiEncoder:
             # Encode only (no decoding)
             #   REF: https://trac.ffmpeg.org/wiki/Hardware/VAAPI#Encode-only (sorta)
             generic_kwargs = {
-                "-vaapi_device": hardware_device.get('hwaccel_device'),
+                "-vaapi_device": hardware_device.get('hwaccel_device_path'),
             }
             advanced_kwargs = {}
 
@@ -161,9 +175,51 @@ class VaapiEncoder:
         if self.settings.get_setting(key) not in available_options:
             self.settings.set_setting(key, default_option)
 
+    def get_vaapi_device_form_settings(self):
+        values = {
+            "label":          "VAAPI Device",
+            "sub_setting":    True,
+            "input_type":     "select",
+            "select_options": [
+                {
+                    "value": "none",
+                    "label": "No VAAPI devices available",
+                }
+            ]
+        }
+        default_option = None
+        hardware_devices = list_available_vaapi_devices()
+        if hardware_devices:
+            values['select_options'] = []
+            for hw_device in hardware_devices:
+                if not default_option:
+                    default_option = hw_device.get('hwaccel_device', 'none')
+                values['select_options'].append({
+                    "value": hw_device.get('hwaccel_device', 'none'),
+                    "label": "VAAPI device '{}'".format(hw_device.get('hwaccel_device_path', 'not found')),
+                })
+        if not default_option:
+            default_option = 'none'
+
+        self.__set_default_option(values['select_options'], 'vaapi_device', default_option=default_option)
+        if self.settings.get_setting('mode') not in ['standard']:
+            values["display"] = "hidden"
+        return values
+
+    def get_enabled_hw_decoding_form_settings(self):
+        values = {
+            "label":       "Enable HW Decoding",
+            "sub_setting": True,
+            "description": "Will fallback to software decoding and hardware encoding when the input is not be hardware decodable.",
+        }
+        if self.settings.get_setting('mode') not in ['standard']:
+            values["display"] = "hidden"
+        return values
+
     def get_encoder_ratecontrol_method_form_settings(self):
         values = {
             "label":          "Encoder ratecontrol method",
+            "sub_setting":    True,
             "input_type":     "select",
             "select_options": [
                 {
@@ -202,6 +258,7 @@ class VaapiEncoder:
         # Lower is better
         values = {
             "label":          "Constant quantizer scale",
+            "sub_setting":    True,
             "input_type":     "slider",
             "slider_options": {
                 "min": 0,
@@ -218,6 +275,7 @@ class VaapiEncoder:
         # Lower is better
         values = {
             "label":          "Constant quality scale",
+            "sub_setting":    True,
             "input_type":     "slider",
             "slider_options": {
                 "min": 1,
@@ -233,6 +291,7 @@ class VaapiEncoder:
     def get_average_bitrate_form_settings(self):
         values = {
             "label":          "Bitrate",
+            "sub_setting":    True,
             "input_type":     "slider",
             "slider_options": {
                 "min":    1,
