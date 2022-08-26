@@ -6,7 +6,7 @@
 # File Created: Friday, 26th August 2022 5:06:41 pm
 # Author: Josh.5 (jsunnex@gmail.com)
 # -----
-# Last Modified: Friday, 26th August 2022 5:07:09 pm
+# Last Modified: Friday, 26th August 2022 5:45:17 pm
 # Modified By: Josh.5 (jsunnex@gmail.com)
 ###
 # !/usr/bin/env python3
@@ -49,8 +49,9 @@ class GlobalSettings:
                 "max_muxing_queue_size": 2048,
             },
             "encoder_selection":      {
-                "video_codec":   "hevc",
-                "video_encoder": "libx265",
+                "video_codec":     "hevc",
+                "force_transcode": False,
+                "video_encoder":   "libx265",
             },
             "advanced_input_options": {
                 "main_options":     "",
@@ -139,7 +140,16 @@ class GlobalSettings:
                 },
             ],
         }
-        if self.settings.get_setting('mode') not in ['basic', 'standard']:
+        if self.settings.get_setting('mode') not in ['basic', 'standard', 'advanced']:
+            values["display"] = 'hidden'
+        return values
+
+    def get_force_transcode_form_settings(self):
+        values = {
+            "label":       "Force transcoding even if the file is already using the desired video codec",
+            "sub_setting": True,
+        }
+        if self.settings.get_setting('mode') not in ['basic', 'standard', 'advanced']:
             values["display"] = 'hidden'
         return values
 
@@ -203,7 +213,7 @@ class GlobalSettings:
 
     def get_custom_options_form_settings(self):
         values = {
-            "label":      "Write your own custom video options",
+            "label":      "Write your own custom video options (starting with the encoder to use)",
             "input_type": "textarea",
         }
         if self.settings.get_setting('mode') not in ['advanced']:

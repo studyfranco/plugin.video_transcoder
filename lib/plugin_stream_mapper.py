@@ -229,9 +229,11 @@ class PluginStreamMapper(StreamMapper):
         :param stream_info:
         :return:
         """
-        # Ignore image video streams (will just copy them)
-        if stream_info.get('codec_name').lower() in tools.image_video_codecs:
-            return False
+        # If force transcode is enabled, then process everything regardless of the current codec
+        if not self.settings.get_setting('force_transcode'):
+            # Ignore image video streams (will just copy them)
+            if stream_info.get('codec_name').lower() in tools.image_video_codecs:
+                return False
 
         # Check if video filters need to be applied (build_filter_chain)
         if self.settings.get_setting('apply_smart_filters'):
