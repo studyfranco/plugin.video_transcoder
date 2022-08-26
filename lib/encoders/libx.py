@@ -152,7 +152,7 @@ class LibxEncoder:
                 },
             ],
         }
-        if self.settings.get_setting('mode') not in ['standard', 'advanced']:
+        if self.settings.get_setting('mode') not in ['standard']:
             values["display"] = "hidden"
         return values
 

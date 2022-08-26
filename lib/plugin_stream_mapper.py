@@ -261,7 +261,7 @@ class PluginStreamMapper(StreamMapper):
         map_identifier = '0:{}'.format(stream_specifier)
 
         if self.settings.get_setting('mode') == 'advanced':
-            stream_encoding = ['-c:{}'.format(stream_specifier), self.settings.get_setting('video_encoder')]
+            stream_encoding = ['-c:{}'.format(stream_specifier)]
             stream_encoding += self.settings.get_setting('custom_options').split()
         else:
             # Build complex filter

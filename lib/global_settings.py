@@ -9,7 +9,7 @@
 # Last Modified: Friday, 26th August 2022 5:07:09 pm
 # Modified By: Josh.5 (jsunnex@gmail.com)
 ###
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -56,7 +56,8 @@ class GlobalSettings:
                 "main_options":     "",
                 "advanced_options": "-strict -2\n"
                                     "-max_muxing_queue_size 2048\n",
-                "custom_options":   "-preset slow\n"
+                "custom_options":   "libx264\n"
+                                    "-preset slow\n"
                                     "-tune film\n"
                                     "-global_quality 23\n"
                                     "-look_ahead 1\n",
@@ -103,13 +104,12 @@ class GlobalSettings:
                     "value": "standard",
                     "label": "Standard (I know how to transcode some video. Let me tweak some settings.)",
                 },
+                {
+                    "value": "advanced",
+                    "label": "Advanced (Dont tell me what to do, I write FFmpeg commands in my sleep.)",
+                },
             ],
         }
-        # TODO: Enable advanced options
-        # {
-        #     "value": "advanced",
-        #     "label": "Advanced - Dont tell me what to do, I write FFmpeg commands in my sleep",
-        # },
 
     def get_max_muxing_queue_size_form_settings(self):
         values = {
@@ -120,12 +120,12 @@ class GlobalSettings:
                 "max": 10240,
             },
         }
-        if self.settings.get_setting('mode') not in ['standard', 'advanced']:
+        if self.settings.get_setting('mode') not in ['standard']:
             values["display"] = 'hidden'
         return values
 
     def get_video_codec_form_settings(self):
-        return {
+        values = {
             "label":          "Video Codec",
             "input_type":     "select",
             "select_options": [
@@ -139,6 +139,9 @@ class GlobalSettings:
                 },
             ],
         }
+        if self.settings.get_setting('mode') not in ['basic', 'standard']:
+            values["display"] = 'hidden'
+        return values
 
     def get_video_encoder_form_settings(self):
         values = {
@@ -176,6 +179,8 @@ class GlobalSettings:
                 },
             ]
         self.__set_default_option(values['select_options'], 'video_encoder')
+        if self.settings.get_setting('mode') not in ['basic', 'standard']:
+            values["display"] = 'hidden'
         return values
 
     def get_main_options_form_settings(self):
