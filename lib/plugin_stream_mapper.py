@@ -36,7 +36,7 @@ logger = logging.getLogger("Unmanic.Plugin.video_transcoder")
 
 class PluginStreamMapper(StreamMapper):
     def __init__(self):
-        super(PluginStreamMapper, self).__init__(logger, ['video'])
+        super(PluginStreamMapper, self).__init__(logger, ['video', 'data', 'attachment'])
         self.abspath = None
         self.settings = None
         self.complex_video_filters = {}
@@ -238,18 +238,26 @@ class PluginStreamMapper(StreamMapper):
 
         # Check if video filters need to be applied (build_filter_chain)
         if self.settings.get_setting('apply_smart_filters'):
-            # Check if autocrop filter needs to be applied
-            if self.settings.get_setting('autocrop_black_bars') and self.crop_value:
-                return True
-            # Check if scale filter needs to be applied
-            if self.settings.get_setting('target_resolution') not in ['source']:
-                vid_width, vid_height = self.scale_resolution(stream_info)
-                if vid_width:
+            # Video filters
+            if stream_info.get('codec_type', '').lower() in ['video']:
+                # Check if autocrop filter needs to be applied
+                if self.settings.get_setting('autocrop_black_bars') and self.crop_value:
+                    return True
+                # Check if scale filter needs to be applied
+                if self.settings.get_setting('target_resolution') not in ['source']:
+                    vid_width, vid_height = self.scale_resolution(stream_info)
+                    if vid_width:
+                        return True
+            # Data/Attachment filters
+            if stream_info.get('codec_type', '').lower() in ['data', 'attachment']:
+                # Enable removal of data and attachment streams
+                if self.settings.get_setting('remove_data_and_attachment_streams'):
+                    # Remove it
                     return True
 
-        # Ignore checks if force transcode is set
-        if not self.settings.get_setting('force_transcode'):
-            # Check if the codec is already the correct format
+        # If the stream is a video, add a final check if the codec is already the correct format
+        #   (Ignore checks if force transcode is set)
+        if stream_info.get('codec_type', '').lower() in ['video'] and not self.settings.get_setting('force_transcode'):
             if stream_info.get('codec_name').lower() == self.settings.get_setting('video_codec'):
                 return False
 
@@ -264,33 +272,68 @@ class PluginStreamMapper(StreamMapper):
         :param stream_id:
         :return:
         """
-        stream_specifier = 'v:{}'.format(stream_id)
+        ident = {
+            'video':      'v',
+            'audio':      'a',
+            'subtitle':   's',
+            'data':       'd',
+            'attachment': 't'
+        }
+        codec_type = stream_info.get('codec_type', '').lower()
+        stream_specifier = '{}:{}'.format(ident.get(codec_type), stream_id)
         map_identifier = '0:{}'.format(stream_specifier)
+        if stream_info.get('codec_type', '').lower() in ['video']:
+            if self.settings.get_setting('mode') == 'advanced':
+                stream_encoding = ['-c:{}'.format(stream_specifier)]
+                stream_encoding += self.settings.get_setting('custom_options').split()
+            else:
+                # Build complex filter
+                filter_id, filter_complex = self.build_filter_chain(stream_info, stream_id)
+                if filter_complex:
+                    map_identifier = '[{}]'.format(filter_id)
+                    self.set_ffmpeg_advanced_options(**{"-filter_complex": filter_complex})
 
-        if self.settings.get_setting('mode') == 'advanced':
-            stream_encoding = ['-c:{}'.format(stream_specifier)]
-            stream_encoding += self.settings.get_setting('custom_options').split()
+                stream_encoding = [
+                    '-c:{}'.format(stream_specifier), self.settings.get_setting('video_encoder'),
+                ]
+
+                # Add encoder args
+                if self.settings.get_setting('video_encoder') in LibxEncoder.encoders:
+                    qsv_encoder = LibxEncoder(self.settings)
+                    stream_encoding += qsv_encoder.args(stream_id)
+                elif self.settings.get_setting('video_encoder') in QsvEncoder.encoders:
+                    qsv_encoder = QsvEncoder(self.settings)
+                    stream_encoding += qsv_encoder.args(stream_id)
+                elif self.settings.get_setting('video_encoder') in VaapiEncoder.encoders:
+                    vaapi_encoder = VaapiEncoder(self.settings)
+                    stream_encoding += vaapi_encoder.args(stream_id)
+        elif stream_info.get('codec_type', '').lower() in ['data']:
+            if not self.settings.get_setting('apply_smart_filters'):
+                # If smart filters are not enabled, return 'False' to let the default mapping just copy the data stream
+                return False
+            # Remove if settings configured to do so, strip the data stream
+            if self.settings.get_setting('strip_data_streams'):
+                return {
+                    'stream_mapping':  [],
+                    'stream_encoding': [],
+                }
+            # Resort to returning 'False' to let the default mapping just copy the data stream
+            return False
+        elif stream_info.get('codec_type', '').lower() in ['attachment']:
+            if not self.settings.get_setting('apply_smart_filters'):
+                # If smart filters are not enabled, return 'False' to let the default mapping just copy the attachment
+                #   stream
+                return False
+            # Remove if settings configured to do so, strip the attachment stream
+            if self.settings.get_setting('strip_attachment_streams'):
+                return {
+                    'stream_mapping':  [],
+                    'stream_encoding': [],
+                }
+            # Resort to returning 'False' to let the default mapping just copy the attachment stream
+            return False
         else:
-            # Build complex filter
-            filter_id, filter_complex = self.build_filter_chain(stream_info, stream_id)
-            if filter_complex:
-                map_identifier = '[{}]'.format(filter_id)
-                self.set_ffmpeg_advanced_options(**{"-filter_complex": filter_complex})
-
-            stream_encoding = [
-                '-c:{}'.format(stream_specifier), self.settings.get_setting('video_encoder'),
-            ]
-
-            # Add encoder args
-            if self.settings.get_setting('video_encoder') in LibxEncoder.encoders:
-                qsv_encoder = LibxEncoder(self.settings)
-                stream_encoding += qsv_encoder.args(stream_id)
-            elif self.settings.get_setting('video_encoder') in QsvEncoder.encoders:
-                qsv_encoder = QsvEncoder(self.settings)
-                stream_encoding += qsv_encoder.args(stream_id)
-            elif self.settings.get_setting('video_encoder') in VaapiEncoder.encoders:
-                vaapi_encoder = VaapiEncoder(self.settings)
-                stream_encoding += vaapi_encoder.args(stream_id)
+            raise Exception("Unsupported codec type {}".format())
 
         return {
             'stream_mapping':  ['-map', map_identifier],
