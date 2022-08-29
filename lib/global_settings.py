@@ -177,7 +177,6 @@ class GlobalSettings:
             ]
         elif self.settings.get_setting('video_codec') == 'h264':
             # TODO: Add support for VAAPI (requires some tweaking of standard values)
-            # TODO: Enable libx264
             values['select_options'] = [
                 {
                     "value": "libx264",

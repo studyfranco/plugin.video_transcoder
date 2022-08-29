@@ -160,6 +160,8 @@ class PluginStreamMapper(StreamMapper):
                 software_filters.append('crop={}'.format(self.crop_value))
             if self.settings.get_setting('target_resolution') not in ['source']:
                 vid_width, vid_height = self.scale_resolution(stream_info)
+                # TODO: ignore this if hardware encoding is enabled and the hardware has the ability to perform
+                #  the scaling filter
                 if vid_width:
                     # Apply scale with only width to keep aspect ratio
                     software_filters.append('scale={}:-1'.format(vid_width))
@@ -182,7 +184,7 @@ class PluginStreamMapper(StreamMapper):
             if software_filters:
                 self.set_ffmpeg_generic_options(**{'-hwaccel_output_format': 'nv12'})
 
-        # TODO: Add scaling filter (use hardware scaling if enabled)
+        # TODO: Add HW scaling filter if available (disable software filter above)
 
         # Return here if there are no filters to apply
         if not software_filters and not hardware_filters:
@@ -230,10 +232,9 @@ class PluginStreamMapper(StreamMapper):
         :return:
         """
         # If force transcode is enabled, then process everything regardless of the current codec
-        if not self.settings.get_setting('force_transcode'):
-            # Ignore image video streams (will just copy them)
-            if stream_info.get('codec_name').lower() in tools.image_video_codecs:
-                return False
+        # Ignore image video streams (will just copy them)
+        if stream_info.get('codec_name').lower() in tools.image_video_codecs:
+            return False
 
         # Check if video filters need to be applied (build_filter_chain)
         if self.settings.get_setting('apply_smart_filters'):
@@ -246,8 +247,12 @@ class PluginStreamMapper(StreamMapper):
                 if vid_width:
                     return True
 
-        # TODO: Check if the codec is already the correct format
-        # TODO: Add override if settings say to force encoding
+        # Ignore checks if force transcode is set
+        if not self.settings.get_setting('force_transcode'):
+            # Check if the codec is already the correct format
+            if stream_info.get('codec_name').lower() == self.settings.get_setting('video_codec'):
+                return False
+
         # All other streams should be custom mapped
         return True
 
@@ -270,7 +275,6 @@ class PluginStreamMapper(StreamMapper):
             filter_id, filter_complex = self.build_filter_chain(stream_info, stream_id)
             if filter_complex:
                 map_identifier = '[{}]'.format(filter_id)
-                # TODO: Apply the filter directly as it may be possible to have more than one video stream (low priority)
                 self.set_ffmpeg_advanced_options(**{"-filter_complex": filter_complex})
 
             stream_encoding = [
