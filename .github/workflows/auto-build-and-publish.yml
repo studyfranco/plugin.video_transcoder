@@ -1,0 +1,120 @@
+name: Automatically build and publish this plugin
+
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+
+  build-and-publish-plugin:
+    runs-on: ubuntu-latest
+    name: Build and publish plugin
+    steps:
+
+    # Checkout plugin source
+    - name: Checkout plugin
+      uses: actions/checkout@v2
+      with:
+        path: plugin
+
+    # Checkout the official plugin repo templates
+    - name: Checkout official plugin repo templates branch
+      uses: actions/checkout@v2
+      with:
+        repository: Unmanic/unmanic-plugins
+        ref: template
+        path: template
+
+    # Prepare build environment
+    - name: Prepare build environment
+      id: prepare
+      run: |
+        # Copy generate repo script to scripts directory
+        cp -rfv ./template/scripts ./
+        if [ ! -e ./scripts/generate_repository.py ]; then
+            echo "Unable to build repo. Could not find generator script."
+            exit 1
+        fi
+
+        # Create dummy repo config
+        cat << EOF > config.json
+        {
+            "id": "repository.tmp",
+            "name": "Build Repo",
+            "icon": ""
+        }
+        EOF
+
+        # Read plugin id and version from info.json
+        plugin_id=$(cat plugin/info.json | jq -r .id)
+        plugin_version=$(cat plugin/info.json | jq -r .version)
+        echo ::set-output name=plugin_id::${plugin_id}
+        echo ::set-output name=plugin_version::${plugin_version}
+
+        # Install plugin into source directory for building
+        mkdir -p source/
+        mv -fv plugin source/${plugin_id}
+
+    # Setup python environment
+    - name: Set up Python 3.8
+      if: success()
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    # Setup node environment
+    - name: Set up node 16
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    # Generate repo
+    - name: Generate repository from source
+      if: success()
+      id: generate_repo
+      run: |
+        cat ./source/${{ steps.prepare.outputs.plugin_id }}/info.json
+        python ./scripts/generate_repository.py
+
+    # Upload artifacts
+    - uses: actions/upload-artifact@v2
+      with:
+        name: plugin.${{ steps.prepare.outputs.plugin_id }}-v${{ steps.prepare.outputs.plugin_version }}
+        path: repo/**/*.zip
+
+    # Generate tagged release (should not be updated)
+    - uses: mukunku/tag-exists-action@v1.0.0
+      id: check_tag_exists
+      with: 
+        tag: ${{ steps.prepare.outputs.plugin_version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: test check_tag_exists result
+      run: echo "RES - '${{ steps.check_tag_exists.outputs.exists }}' -"
+    - uses: ncipollo/release-action@v1
+      if: steps.check_tag_exists.outputs.exists == 'false'
+      with:
+        name: "Tagged Build: ${{ steps.prepare.outputs.plugin_version }}"
+        body: "Versioned release"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: repo/**/*.zip
+        generateReleaseNotes: true
+        allowUpdates: false
+        tag: ${{ steps.prepare.outputs.plugin_version }}
+        commit: master
+
+    # Generate latest development
+    - uses: ncipollo/release-action@v1
+      with:
+        name: "Development Build"
+        body: "Latest development release"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: repo/**/*.zip
+        generateReleaseNotes: true
+        allowUpdates: true
+        removeArtifacts: true
+        replacesArtifacts: true
+        tag: latest
+        commit: master
+        prerelease: true
