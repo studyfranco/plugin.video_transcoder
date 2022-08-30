@@ -192,17 +192,16 @@ jobs:
       env:
         GH_TOKEN: "${{ secrets.GH_TOKEN }}"
 
-    # Open a PR (if one is not already open)
+    # If a PR branch was created, open a PR (if one is not already open)
     - name: Generate PR
       if: steps.execute.outputs.result == 'success'
-      uses: peter-evans/create-pull-request@v4
-      with:
-        token: ${{ secrets.GH_TOKEN }}
-        title: "[${{ steps.prepare.outputs.plugin_id }}] v${{ steps.prepare.outputs.plugin_version }}"
-        body: "PR automatically generated from [plugin source workflow](${{ steps.config.outputs.workflow_run_link }})"
-        # Into
-        base: "${{ steps.config.outputs.dest_repo_branch }}"
-        # From
-        branch: "pr-${{ steps.prepare.outputs.plugin_id }}"
-        delete-branch: true
-        add-paths: source/${{ steps.prepare.outputs.plugin_id }}
+      run: |
+        # Execute the 'gh pr create' command and exit quietly without error if the command fails
+        gh pr create \
+          --title "[${{ steps.prepare.outputs.plugin_id }}] v${{ steps.prepare.outputs.plugin_version }}" \
+          --body "PR automatically generated from [plugin source workflow](${{ steps.config.outputs.workflow_run_link }})" \
+          --base "${{ steps.config.outputs.dest_repo_branch }}" \
+          --head "pr-${{ steps.prepare.outputs.plugin_id }}" \
+          --repo "${{ steps.config.outputs.dest_repo }}" || true
+      env:
+        GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
