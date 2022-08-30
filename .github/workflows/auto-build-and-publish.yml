@@ -118,3 +118,89 @@ jobs:
         tag: latest
         commit: master
         prerelease: true
+
+  generate-pr-in-official-repo:
+    runs-on: ubuntu-latest
+    name: Generate PR for official repo
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: write
+    steps:
+
+    # Configure
+    - name: Prepare build environment
+      id: config
+      run: |
+        echo ::set-output name=dest_repo::Unmanic/unmanic-plugins
+        echo ::set-output name=dest_repo_branch::official
+        echo ::set-output name=workflow_run_link::$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
+    # Checkout the destination plugin repo
+    - name: Checkout destination plugin repo
+      uses: actions/checkout@v2
+      with:
+        repository: ${{ steps.config.outputs.dest_repo }}
+        ref: ${{ steps.config.outputs.dest_repo_branch }}
+        fetch-depth: 0
+
+    # Checkout plugin source
+    - name: Checkout plugin
+      uses: actions/checkout@v2
+      with:
+        path: build/plugin
+
+    # Prepare build environment
+    - name: Prepare build environment
+      id: prepare
+      run: |
+        # Read plugin id and version from info.json
+        plugin_id=$(cat build/plugin/info.json | jq -r .id)
+        plugin_version=$(cat build/plugin/info.json | jq -r .version)
+        echo ::set-output name=plugin_id::${plugin_id}
+        echo ::set-output name=plugin_version::${plugin_version}
+
+        # Rename plugin directory for building
+        rm -rf build/plugin.${plugin_id}
+        mv -fv build/plugin build/plugin.${plugin_id}
+
+    # Configure git user for commit messages
+    - name: Configure git user
+      uses: fregante/setup-git-user@v1
+
+    # Check for plugin updates and create a PR branch with any changes found
+    - name: Generate PR branch
+      id: execute
+      run: |
+        # # Set the commit user/email
+        # git config --global user.email "${GITHUB_ACTOR}"
+        # git config --global user.name "${GITHUB_ACTOR}@users.noreply.github.com"
+        # Create plugin branch
+        ./.github/workflow_scripts/create_plugin_pr_branch.sh "${{ steps.prepare.outputs.plugin_id }}"
+        # Parse result
+        echo ::set-output name=result::$(cat ./result.txt)
+      shell: bash
+
+    # If a PR branch was created, force push branch to dest repo
+    - name: Push PR branch
+      if: steps.execute.outputs.result == 'success'
+      run: |
+        git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
+        git push -f https://token:${GH_TOKEN}@github.com/${{ steps.config.outputs.dest_repo }}.git "pr-${{ steps.prepare.outputs.plugin_id }}"
+      env:
+        GH_TOKEN: "${{ secrets.GH_TOKEN }}"
+
+    # Open a PR (if one is not already open)
+    - name: Generate PR
+      if: steps.execute.outputs.result == 'success'
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GH_TOKEN }}
+        title: "[${{ steps.prepare.outputs.plugin_id }}] v${{ steps.prepare.outputs.plugin_version }}"
+        body: "PR automatically generated from [plugin source workflow](${{ steps.config.outputs.workflow_run_link }})"
+        # Into
+        base: "${{ steps.config.outputs.dest_repo_branch }}"
+        # From
+        branch: "pr-${{ steps.prepare.outputs.plugin_id }}"
+        delete-branch: true
+        add-paths: source/${{ steps.prepare.outputs.plugin_id }}
