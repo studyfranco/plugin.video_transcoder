@@ -187,6 +187,8 @@ jobs:
       run: |
         git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
         git push -f https://token:${GH_TOKEN}@github.com/${{ steps.config.outputs.dest_repo }}.git "pr-${{ steps.prepare.outputs.plugin_id }}"
+        # Add a small sleep here before running completing this job
+        sleep 2
       env:
         GH_TOKEN: "${{ secrets.GH_TOKEN }}"
 
