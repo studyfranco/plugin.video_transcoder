@@ -14,13 +14,14 @@ jobs:
 
     # Checkout plugin source
     - name: Checkout plugin
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: plugin
+        submodules: recursive
 
     # Checkout the official plugin repo templates
     - name: Checkout official plugin repo templates branch
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: Unmanic/unmanic-plugins
         ref: template
@@ -49,8 +50,8 @@ jobs:
         # Read plugin id and version from info.json
         plugin_id=$(cat plugin/info.json | jq -r .id)
         plugin_version=$(cat plugin/info.json | jq -r .version)
-        echo ::set-output name=plugin_id::${plugin_id}
-        echo ::set-output name=plugin_version::${plugin_version}
+        echo "plugin_id=${plugin_id}" >> $GITHUB_OUTPUT
+        echo "plugin_version=${plugin_version}" >> $GITHUB_OUTPUT
 
         # Install plugin into source directory for building
         mkdir -p source/
@@ -59,13 +60,13 @@ jobs:
     # Setup python environment
     - name: Set up Python 3.8
       if: success()
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
 
     # Setup node environment
     - name: Set up node 16
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: '16'
 
@@ -78,13 +79,13 @@ jobs:
         python ./scripts/generate_repository.py
 
     # Upload artifacts
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: plugin.${{ steps.prepare.outputs.plugin_id }}-v${{ steps.prepare.outputs.plugin_version }}
         path: repo/**/*.zip
 
     # Generate tagged release (should not be updated)
-    - uses: mukunku/tag-exists-action@v1.0.0
+    - uses: mukunku/tag-exists-action@v1.2.0
       id: check_tag_exists
       with: 
         tag: ${{ steps.prepare.outputs.plugin_version }}
@@ -132,13 +133,13 @@ jobs:
     - name: Prepare build environment
       id: config
       run: |
-        echo ::set-output name=dest_repo::Unmanic/unmanic-plugins
-        echo ::set-output name=dest_repo_branch::official
-        echo ::set-output name=workflow_run_link::$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+        echo "dest_repo=Unmanic/unmanic-plugins" >> $GITHUB_OUTPUT
+        echo "dest_repo_branch=official" >> $GITHUB_OUTPUT
+        echo "workflow_run_link=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
 
     # Checkout the destination plugin repo
     - name: Checkout destination plugin repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: ${{ steps.config.outputs.dest_repo }}
         ref: ${{ steps.config.outputs.dest_repo_branch }}
@@ -146,9 +147,10 @@ jobs:
 
     # Checkout plugin source
     - name: Checkout plugin
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: build/plugin
+        submodules: recursive
 
     # Prepare build environment
     - name: Prepare build environment
@@ -157,8 +159,8 @@ jobs:
         # Read plugin id and version from info.json
         plugin_id=$(cat build/plugin/info.json | jq -r .id)
         plugin_version=$(cat build/plugin/info.json | jq -r .version)
-        echo ::set-output name=plugin_id::${plugin_id}
-        echo ::set-output name=plugin_version::${plugin_version}
+        echo "plugin_id=${plugin_id}" >> $GITHUB_OUTPUT
+        echo "plugin_version=${plugin_version}" >> $GITHUB_OUTPUT
 
         # Rename plugin directory for building
         rm -rf build/plugin.${plugin_id}
@@ -178,7 +180,7 @@ jobs:
         # Create plugin branch
         ./.github/workflow_scripts/create_plugin_pr_branch.sh "${{ steps.prepare.outputs.plugin_id }}"
         # Parse result
-        echo ::set-output name=result::$(cat ./result.txt)
+        echo "result=$(cat ./result.txt)" >> $GITHUB_OUTPUT
       shell: bash
 
     # If a PR branch was created, force push branch to dest repo

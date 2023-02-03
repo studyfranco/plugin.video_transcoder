@@ -1,4 +1,7 @@
 
+**<span style="color:#56adda">0.0.6</span>**
+- Fix an error in ffmpeg command generator
+
 **<span style="color:#56adda">0.0.5</span>**
 - Improvements to ffmpeg command generator
 - Fix issue where input file was added before additional main options
