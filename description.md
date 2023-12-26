@@ -22,6 +22,12 @@ For information on the available encoder settings:
   - [FFmpeg - VAAPI](https://trac.ffmpeg.org/wiki/Hardware/VAAPI)
   - [FFmpeg - HWAccelIntro](https://trac.ffmpeg.org/wiki/HWAccelIntro#VAAPI)
 
+:::important
+**Legacy Intel Hardware (Broadwell or older)**
+
+While the [INTEL CPU compatibility chart](https://en.wikipedia.org/wiki/Intel_Quick_Sync_Video#Hardware_decoding_and_encoding) states that all Sandy Bridge, Ivy Bridge, Haswell and Broadwell CPUs support Quick Sync Video encoding, the required iHD VA driver on Linux does not support anything older than Broadwell ([REF](https://github.com/intel/libva/issues/436#issuecomment-668116723)). These chips need to use the i965 VA driver. Therefore, if you are using a Broadwell or older Intel CPU and you want to use HW accelerated encoding of h264, then you need to use VAAPI.
+:::
+
 ---
 
 ##### Additional Information:
