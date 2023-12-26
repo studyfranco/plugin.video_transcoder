@@ -59,6 +59,7 @@ class Settings(PluginSettings):
             "hevc_qsv":   QsvEncoder(self),
             "h264_qsv":   QsvEncoder(self),
             "hevc_vaapi": VaapiEncoder(self),
+            "h264_vaapi":   VaapiEncoder(self),
         }
         self.global_settings = GlobalSettings(self)
         self.form_settings = self.__build_form_settings_object()

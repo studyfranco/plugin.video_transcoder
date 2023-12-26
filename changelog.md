@@ -1,4 +1,7 @@
 
+**<span style="color:#56adda">0.0.9-beta1</span>**
+- Add support for the h264_vaapi encoder
+
 **<span style="color:#56adda">0.0.8</span>**
 - update ffmpeg helper library to latest version
 
