@@ -227,6 +227,13 @@ class GlobalSettings:
                         "label": "VAAPI - hevc_vaapi",
                     },
                 ]
+            if self.__is_nvidia_gpu_present():
+                values['select_options'] += [
+                    {
+                        "value": "hevc_nvenc",
+                        "label": "NVENC - hevc_nvenc",
+                    },
+                ]
         self.__set_default_option(values['select_options'], 'video_encoder')
         if self.settings.get_setting('mode') not in ['basic', 'standard']:
             values["display"] = 'hidden'
