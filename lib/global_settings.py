@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-###
-# File: global_settings.py
-# Project: lib
-# File Created: Friday, 26th August 2022 5:06:41 pm
-# Author: Josh.5 (jsunnex@gmail.com)
-# -----
-# Last Modified: Wednesday, 27th December 2023 12:03:30 pm
-# Modified By: Josh.5 (jsunnex@gmail.com)
-###
-# !/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
     plugins.global_settings.py
@@ -33,6 +22,7 @@
 
 """
 import os
+import subprocess
 import sys
 
 from video_transcoder.lib import tools
@@ -96,6 +86,19 @@ class GlobalSettings:
                 default_option = option.get("value")
         if self.settings.get_setting(key) not in available_options:
             self.settings.set_setting(key, default_option)
+
+    @staticmethod
+    def __is_nvidia_gpu_present():
+        try:
+            # Run the nvidia-smi command
+            subprocess.run("nvidia-smi", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            return True
+        except FileNotFoundError:
+            # nvidia-smi executable not found
+            return False
+        except subprocess.CalledProcessError:
+            # nvidia-smi command failed, likely no NVIDIA GPU present
+            return False
 
     def get_mode_form_settings(self):
         return {
@@ -197,6 +200,13 @@ class GlobalSettings:
                     {
                         "value": "h264_vaapi",
                         "label": "VAAPI - h264_vaapi",
+                    },
+                ]
+            if self.__is_nvidia_gpu_present():
+                values['select_options'] += [
+                    {
+                        "value": "h264_nvenc",
+                        "label": "NVENC - h264_nvenc",
                     },
                 ]
         elif self.settings.get_setting('video_codec') == 'hevc':
