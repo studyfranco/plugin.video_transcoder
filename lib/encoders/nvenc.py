@@ -245,10 +245,10 @@ class NvencEncoder:
     def get_nvenc_decoding_method_form_settings(self):
         values = {
             "label":          "Enable HW Decoding",
-            "description":    "Warning. Ensure your device supports decoding the source video codec or it will fail.\n"
-                              "Decode the video stream using hardware accelerated decoding.\n"
+            "description":    "Warning: Ensure your device supports decoding the source video codec or it will fail.\n"
                               "This enables full hardware transcode with NVDEC and NVENC, using only GPU memory for the entire video transcode.\n"
-                              "It is recommended that for 10-bit encodes, disable this option.",
+                              "If filters are configured in the plugin, decoder will output NV12 software surfaces which are slightly slower.\n"
+                              "Note: It is recommended that you disable this option for 10-bit encodes.",
             "sub_setting":    True,
             "input_type":     "select",
             "select_options": [
@@ -258,15 +258,11 @@ class NvencEncoder:
                 },
                 {
                     "value": "cuda",
-                    "label": "CUDA - Use the GPUs general purpose CUDA for HW decoding the video source (recommended)",
-                },
-                {
-                    "value": "nvdec",
-                    "label": "NVDEC - Use the GPUs dedicated video decoder",
+                    "label": "NVDEC/CUDA - Use the GPUs HW decoding the video source and upload surfaces to CUDA (recommended)",
                 },
                 {
                     "value": "cuvid",
-                    "label": "CUVID - Older interface for HW video decoding. Older GPUs may perform better with CUVID over CUDA",
+                    "label": "CUVID - Older interface for HW video decoding. Kepler or older hardware may perform better with this option",
                 }
             ]
         }
