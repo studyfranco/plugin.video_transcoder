@@ -146,7 +146,7 @@ def file_marked_as_force_transcoded(path):
         has_been_force_transcoded = ''
 
     if has_been_force_transcoded == 'force_transcoded':
-        # This file has already has been force transcoded
+        # This file has already been force transcoded
         return True
 
     # Default to...

@@ -21,6 +21,12 @@ For information on the available encoder settings:
 - VAAPI
   - [FFmpeg - VAAPI](https://trac.ffmpeg.org/wiki/Hardware/VAAPI)
   - [FFmpeg - HWAccelIntro](https://trac.ffmpeg.org/wiki/HWAccelIntro#VAAPI)
+- NVENC
+  - [FFmpeg - HWAccelIntro](https://trac.ffmpeg.org/wiki/HWAccelIntro#NVENC)
+  - [NVIDIA GPU compatibility table](https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new).
+  - [NVIDIA NVDEC (decoder) compatibility chart](https://en.wikipedia.org/wiki/Nvidia_NVDEC#GPU_support)
+  - [NVIDIA NVENC (encoder) compatibility chart](https://en.wikipedia.org/wiki/Nvidia_NVENC#Versions)
+  - [NVIDIA FFmpeg Transcoding Guide](https://developer.nvidia.com/blog/nvidia-ffmpeg-transcoding-guide/)
 
 :::important
 **Legacy Intel Hardware (Broadwell or older)**

@@ -34,14 +34,11 @@ def list_available_cuda_devices():
     :return:
     """
     gpu_dicts = []
-
     try:
         # Run the nvidia-smi command
         result = subprocess.check_output(['nvidia-smi', '-L'], encoding='utf-8')
-
         # Use regular expression to find device IDs, names, and UUIDs
         gpu_info = re.findall(r'GPU (\d+): (.+) \(UUID: (.+)\)', result)
-
         # Populate the list of dictionaries for each GPU
         for gpu_id, gpu_name, gpu_uuid in gpu_info:
             gpu_dict = {
@@ -55,9 +52,34 @@ def list_available_cuda_devices():
     except subprocess.CalledProcessError:
         # nvidia-smi command failed, likely no NVIDIA GPU present
         return []
-
     # Return the list of GPUs
     return gpu_dicts
+
+
+def get_configured_device(settings):
+    """
+    Returns the currently configured device
+    Checks to ensure that the configured device exists and otherwise will return the first device available
+    :param settings:
+    :return:
+    """
+    hardware_device = None
+    # Set the hardware device
+    hardware_devices = list_available_cuda_devices()
+    if not hardware_devices:
+        # Return no options. No hardware device was found
+        raise Exception("No NVIDIA device found")
+    # If we have configured a hardware device
+    if settings.get_setting('nvenc_device') not in ['none']:
+        # Attempt to match to that configured hardware device
+        for hw_device in hardware_devices:
+            if settings.get_setting('nvenc_device') == hw_device.get('hwaccel_device'):
+                hardware_device = hw_device
+                break
+    # If no matching hardware device is set, then select the first one
+    if not hardware_device:
+        hardware_device = hardware_devices[0]
+    return hardware_device
 
 
 class NvencEncoder:
@@ -95,52 +117,42 @@ class NvencEncoder:
         :param settings:
         :return:
         """
-        # Set the hardware device
-        hardware_devices = list_available_cuda_devices()
-        if not hardware_devices:
-            # Return no options. No hardware device was found
-            raise Exception("No VAAPI device found")
-
-        hardware_device = None
-        # If we have configured a hardware device
-        if settings.get_setting('nvenc_device') not in ['none']:
-            # Attempt to match to that configured hardware device
-            for hw_device in hardware_devices:
-                if settings.get_setting('nvenc_device') == hw_device.get('hwaccel_device'):
-                    hardware_device = hw_device
-                    break
-        # If no matching hardware device is set, then select the first one
-        if not hardware_device:
-            hardware_device = hardware_devices[0]
+        hardware_device = get_configured_device(settings)
 
         generic_kwargs = {}
         advanced_kwargs = {}
         # Check if we are using a HW accelerated decoder also
-        if settings.get_setting('nvenc_decoding_method') != 'cpu':
+        if settings.get_setting('nvenc_decoding_method') in ['cuda', 'nvdec', 'cuvid']:
             generic_kwargs = {
-                "-hwaccel":          settings.get_setting('enabled_hw_decoding'),
-                "-hwaccel_device":   hardware_device,
-                "-init_hw_device":   "{}=hw".format(settings.get_setting('enabled_hw_decoding')),
+                "-hwaccel_device":   hardware_device.get('hwaccel_device'),
+                "-hwaccel":          settings.get_setting('nvenc_decoding_method'),
+                "-init_hw_device":   "cuda=hw",
                 "-filter_hw_device": "hw",
             }
+            if settings.get_setting('nvenc_decoding_method') in ['cuda', 'nvdec']:
+                generic_kwargs["-hwaccel_output_format"] = "cuda"
         return generic_kwargs, advanced_kwargs
 
     @staticmethod
     def generate_filtergraphs():
         """
-        Generate the required filter for enabling QSV HW acceleration
+        Generate the required filter for enabling NVENC HW acceleration
 
         :return:
         """
-        return ["hwupload_cuda"]
+        return []
 
-    def args(self, stream_id):
+    def args(self, stream_info, stream_id):
+        generic_kwargs = {}
         stream_encoding = []
+
+        # Specify the GPU to use for encoding
+        hardware_device = get_configured_device(self.settings)
+        stream_encoding += ['-gpu', str(hardware_device.get('hwaccel_device', '0'))]
 
         # Use defaults for basic mode
         if self.settings.get_setting('mode') in ['basic']:
             defaults = self.options()
-            # Use default LA_ICQ mode
             stream_encoding += [
                 '-preset', str(defaults.get('nvenc_preset')),
                 '-profile:v:{}'.format(stream_id), str(defaults.get('nvenc_profile')),
@@ -150,13 +162,13 @@ class NvencEncoder:
         # Add the preset and tune
         if self.settings.get_setting('nvenc_preset'):
             stream_encoding += ['-preset', str(self.settings.get_setting('nvenc_preset'))]
-        if self.settings.get_setting('nvenc_tune'):
+        if self.settings.get_setting('nvenc_tune') and self.settings.get_setting('nvenc_tune') != 'auto':
             stream_encoding += ['-tune', str(self.settings.get_setting('nvenc_tune'))]
         if self.settings.get_setting('nvenc_tune'):
             stream_encoding += ['-profile:v:{}'.format(stream_id), str(self.settings.get_setting('nvenc_profile'))]
 
         # Apply rate control config
-        if self.settings.get_setting('nvenc_encoder_ratecontrol_method', 'auto') != 'auto':
+        if self.settings.get_setting('nvenc_encoder_ratecontrol_method') in ['constqp', 'vbr', 'vbr_hq', 'cbr', 'cbr_hq']:
             # Set the rate control method
             stream_encoding += [
                 '-rc:v:{}'.format(stream_id), str(self.settings.get_setting('nvenc_encoder_ratecontrol_method'))
@@ -175,7 +187,13 @@ class NvencEncoder:
         if self.settings.get_setting('enable_spatial_aq') or self.settings.get_setting('enable_temporal_aq'):
             stream_encoding += ['-aq-strength:v:{}'.format(stream_id), str(self.settings.get_setting('aq_strength'))]
 
-        return stream_encoding
+        # If CUVID is enabled, return generic_kwargs
+        if self.settings.get_setting('nvenc_decoding_method') in ['cuvid']:
+            generic_kwargs = {
+                '-c:v:{}'.format(stream_id): '{}_cuvid'.format(stream_info.get('codec_name', 'unknown_codec_name')),
+            }
+
+        return generic_kwargs, stream_encoding
 
     def __set_default_option(self, select_options, key, default_option=None):
         """
@@ -214,7 +232,7 @@ class NvencEncoder:
                     default_option = hw_device.get('hwaccel_device', 'none')
                 values['select_options'].append({
                     "value": hw_device.get('hwaccel_device', 'none'),
-                    "label": "NVIDIA device '{}'".format(hw_device.get('hwaccel_device_path', 'not found')),
+                    "label": "NVIDIA device '{}'".format(hw_device.get('hwaccel_device_name', 'not found')),
                 })
         if not default_option:
             default_option = 'none'
@@ -227,7 +245,10 @@ class NvencEncoder:
     def get_nvenc_decoding_method_form_settings(self):
         values = {
             "label":          "Enable HW Decoding",
-            "description":    "Warning. Ensure your device supports decoding the source video codec or it will fail.",
+            "description":    "Warning. Ensure your device supports decoding the source video codec or it will fail.\n"
+                              "Decode the video stream using hardware accelerated decoding.\n"
+                              "This enables full hardware transcode with NVDEC and NVENC, using only GPU memory for the entire video transcode.\n"
+                              "It is recommended that for 10-bit encodes, disable this option.",
             "sub_setting":    True,
             "input_type":     "select",
             "select_options": [
@@ -237,11 +258,15 @@ class NvencEncoder:
                 },
                 {
                     "value": "cuda",
-                    "label": "CUDA - Use NVIDIA CUDA for decoding the video source (best compatibility with older GPUs)",
+                    "label": "CUDA - Use the GPUs general purpose CUDA for HW decoding the video source (recommended)",
                 },
                 {
                     "value": "nvdec",
                     "label": "NVDEC - Use the GPUs dedicated video decoder",
+                },
+                {
+                    "value": "cuvid",
+                    "label": "CUVID - Older interface for HW video decoding. Older GPUs may perform better with CUVID over CUDA",
                 }
             ]
         }
