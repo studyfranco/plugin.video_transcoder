@@ -166,7 +166,9 @@ class PluginStreamMapper(StreamMapper):
                 vid_width, vid_height = self.scale_resolution(stream_info)
                 if vid_width:
                     # Apply scale with only width to keep aspect ratio
-                    if self.settings.get_setting('video_encoder') in NvencEncoder.encoders:
+                    if self.settings.get_setting('video_encoder') in QsvEncoder.encoders:
+                        required_hw_smart_filters.append({'scale': [vid_width, vid_height]})
+                    elif self.settings.get_setting('video_encoder') in NvencEncoder.encoders:
                         required_hw_smart_filters.append({'scale': [vid_width, vid_height]})
                     else:
                         software_filters.append('scale={}:-1'.format(vid_width))
@@ -180,7 +182,11 @@ class PluginStreamMapper(StreamMapper):
         # Check for hardware encoders that required video filters
         if self.settings.get_setting('video_encoder') in QsvEncoder.encoders:
             # Add filtergraph required for using QSV encoding
-            hardware_filters += QsvEncoder.generate_filtergraphs()
+            generic_kwargs, advanced_kwargs, filter_args = QsvEncoder.generate_filtergraphs(self.settings, software_filters,
+                                                                                            required_hw_smart_filters)
+            self.set_ffmpeg_generic_options(**generic_kwargs)
+            self.set_ffmpeg_advanced_options(**advanced_kwargs)
+            hardware_filters += filter_args
         elif self.settings.get_setting('video_encoder') in VaapiEncoder.encoders:
             # Add filtergraph required for using VAAPI encoding
             hardware_filters += VaapiEncoder.generate_filtergraphs()
