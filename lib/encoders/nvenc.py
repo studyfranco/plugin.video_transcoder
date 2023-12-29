@@ -156,6 +156,7 @@ class NvencEncoder:
                 '-preset', str(defaults.get('nvenc_preset')),
                 '-profile:v:{}'.format(stream_id), str(defaults.get('nvenc_profile')),
             ]
+            # TODO: Parse stream info to optimise these settings based on resolution, HDR, etc.
             return stream_encoding
 
         # Add the preset and tune
@@ -167,7 +168,7 @@ class NvencEncoder:
             stream_encoding += ['-profile:v:{}'.format(stream_id), str(self.settings.get_setting('nvenc_profile'))]
 
         # Apply rate control config
-        if self.settings.get_setting('nvenc_encoder_ratecontrol_method') in ['constqp', 'vbr', 'vbr_hq', 'cbr', 'cbr_hq']:
+        if self.settings.get_setting('nvenc_encoder_ratecontrol_method') in ['constqp', 'vbr', 'cbr']:
             # Set the rate control method
             stream_encoding += [
                 '-rc:v:{}'.format(stream_id), str(self.settings.get_setting('nvenc_encoder_ratecontrol_method'))
@@ -390,7 +391,7 @@ class NvencEncoder:
             "select_options": [
                 {
                     "value": "auto",
-                    "label": "Disabled – Do not override the RC setting pre-defined in the preset option (recommended)",
+                    "label": "Auto – Use the rate control setting pre-defined in the preset option (recommended)",
                 },
                 {
                     "value": "constqp",
@@ -401,16 +402,8 @@ class NvencEncoder:
                     "label": "VBR - Bitrate based mode using variable bitrate",
                 },
                 {
-                    "value": "vbr_hq",
-                    "label": "VBR HQ - High Quality VBR mode",
-                },
-                {
                     "value": "cbr",
                     "label": "CBR - Bitrate based mode using constant bitrate",
-                },
-                {
-                    "value": "cbr_hq",
-                    "label": "CBR HQ - High Quality CBR mode",
                 },
             ]
         }
