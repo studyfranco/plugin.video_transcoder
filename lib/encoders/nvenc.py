@@ -182,10 +182,10 @@ class NvencEncoder:
         # Apply adaptive quantization
         if self.settings.get_setting('enable_spatial_aq'):
             stream_encoding += ['-spatial-aq', '1']
-        if self.settings.get_setting('enable_temporal_aq'):
-            stream_encoding += ['-temporal-aq', '1']
         if self.settings.get_setting('enable_spatial_aq') or self.settings.get_setting('enable_temporal_aq'):
             stream_encoding += ['-aq-strength:v:{}'.format(stream_id), str(self.settings.get_setting('aq_strength'))]
+        if self.settings.get_setting('enable_temporal_aq'):
+            stream_encoding += ['-temporal-aq', '1']
 
         # If CUVID is enabled, return generic_kwargs
         if self.settings.get_setting('nvenc_decoding_method') in ['cuvid']:
@@ -465,6 +465,6 @@ class NvencEncoder:
         }
         if self.settings.get_setting('mode') not in ['standard']:
             values["display"] = "hidden"
-        if not self.settings.get_setting('enable_spatial_aq') and not self.settings.get_setting('enable_temporal_aq'):
+        if not self.settings.get_setting('enable_spatial_aq'):
             values["display"] = "hidden"
         return values

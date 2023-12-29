@@ -1,5 +1,5 @@
 
-**<span style="color:#56adda">0.0.9-beta1</span>**
+**<span style="color:#56adda">0.0.9-beta</span>**
 - Add support for the h264_vaapi encoder
 - Add support for the h264_nvenc encoder
 - Add support for the hevc_nvenc encoder
