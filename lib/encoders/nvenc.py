@@ -164,7 +164,7 @@ class NvencEncoder:
             stream_encoding += ['-preset', str(self.settings.get_setting('nvenc_preset'))]
         if self.settings.get_setting('nvenc_tune') and self.settings.get_setting('nvenc_tune') != 'auto':
             stream_encoding += ['-tune', str(self.settings.get_setting('nvenc_tune'))]
-        if self.settings.get_setting('nvenc_tune'):
+        if self.settings.get_setting('nvenc_profile') and self.settings.get_setting('nvenc_profile') != 'auto':
             stream_encoding += ['-profile:v:{}'.format(stream_id), str(self.settings.get_setting('nvenc_profile'))]
 
         # Apply rate control config
