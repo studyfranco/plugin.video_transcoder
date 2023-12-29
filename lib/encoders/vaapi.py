@@ -47,10 +47,16 @@ def list_available_vaapi_devices():
 
 
 class VaapiEncoder:
-    encoders = [
-        "h264_vaapi",
-        "hevc_vaapi",
-    ]
+    provides = {
+        "h264_vaapi": {
+            "codec": "h264",
+            "label": "VAAPI - h264_vaapi",
+        },
+        "hevc_vaapi": {
+            "codec": "hevc",
+            "label": "VAAPI - hevc_vaapi",
+        }
+    }
 
     def __init__(self, settings):
         self.settings = settings
@@ -125,6 +131,9 @@ class VaapiEncoder:
         :return:
         """
         return ["format=nv12|vaapi,hwupload"]
+
+    def encoder_details(self, encoder):
+        return self.provides.get(encoder, {})
 
     def args(self, stream_id):
         stream_encoding = []

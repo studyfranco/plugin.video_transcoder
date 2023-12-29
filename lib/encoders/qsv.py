@@ -33,10 +33,16 @@ Notes:
 
 
 class QsvEncoder:
-    encoders = [
-        "h264_qsv",
-        "hevc_qsv",
-    ]
+    provides = {
+        "h264_qsv": {
+            "codec": "h264",
+            "label": "QSV - h264_qsv",
+        },
+        "hevc_qsv": {
+            "codec": "hevc",
+            "label": "QSV - hevc_qsv",
+        }
+    }
 
     def __init__(self, settings):
         self.settings = settings
@@ -105,6 +111,9 @@ class QsvEncoder:
                 scale_values = smart_filter.get('scale')
                 filter_args.append('scale_qsv=w={}:h={}'.format(scale_values[0], scale_values[1]))
         return generic_kwargs, advanced_kwargs, filter_args
+
+    def encoder_details(self, encoder):
+        return self.provides.get(encoder, {})
 
     def args(self, stream_id):
         stream_encoding = []

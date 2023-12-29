@@ -54,15 +54,7 @@ class Settings(PluginSettings):
     def __init__(self, *args, **kwargs):
         super(Settings, self).__init__(*args, **kwargs)
         self.settings = self.__build_settings_object()
-        self.encoders = {
-            "libx265":    LibxEncoder(self),
-            "libx264":    LibxEncoder(self),
-            "hevc_qsv":   QsvEncoder(self),
-            "h264_qsv":   QsvEncoder(self),
-            "hevc_vaapi": VaapiEncoder(self),
-            "h264_vaapi": VaapiEncoder(self),
-            "h264_nvenc": NvencEncoder(self),
-        }
+        self.encoders = self.__available_encoders()
         self.global_settings = GlobalSettings(self)
         self.form_settings = self.__build_form_settings_object()
 
@@ -95,6 +87,19 @@ class Settings(PluginSettings):
             # Apply form settings
             return_values[setting] = setting_form_settings
         return return_values
+
+    def __available_encoders(self):
+        return_encoders = {}
+        encoder_libs = [
+            LibxEncoder,
+            QsvEncoder,
+            VaapiEncoder,
+            NvencEncoder,
+        ]
+        for encoder_lib in encoder_libs:
+            for encoder in encoder_lib.provides:
+                return_encoders[encoder] = encoder_lib(self)
+        return return_encoders
 
     def __encoder_settings_object(self):
         """
