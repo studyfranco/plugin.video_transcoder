@@ -99,7 +99,6 @@ class NvencEncoder:
             "nvenc_preset":                        "p4",
             "nvenc_tune":                          "auto",
             "nvenc_profile":                       "main",
-            "pixel_format":                        "auto",
             "nvenc_encoder_ratecontrol_method":    "auto",
             "nvenc_encoder_ratecontrol_lookahead": 0,
             "enable_spatial_aq":                   False,
@@ -377,59 +376,6 @@ class NvencEncoder:
             ],
         }
         self.__set_default_option(values['select_options'], 'nvenc_profile', default_option='main')
-        if self.settings.get_setting('mode') not in ['standard']:
-            values["display"] = "hidden"
-        return values
-
-    def get_pixel_format_form_settings(self):
-        values = {
-            "label":          "Encoder pixel format",
-            "description":    "Note: If you get the 'No NVENC capable devices found' error make sure you're \n"
-                              "encoding to a supported pixel format for the hardware and ffmpeg version.\n"
-                              "Any of these profiles are capable of 4:2:0, 4:2:2 and 4:4:4, however the support\n"
-                              "depends on the installed hardware.",
-            "sub_setting":    True,
-            "input_type":     "select",
-            "select_options": [
-                {
-                    "value": "auto",
-                    "label": "Auto – Let ffmpeg automatically select the required pixel format (recommended)",
-                },
-                {
-                    "value": "yuv420p",
-                    "label": "yuv420p - 4:2:0 chroma subsampling (commonly used in H.264)",
-                },
-                {
-                    "value": "yuv422p",
-                    "label": "yuv422p - 4:2:2 chroma subsampling",
-                },
-                {
-                    "value": "yuv444p",
-                    "label": "yuv444p - 4:4:4 chroma subsampling, no subsampling",
-                },
-                {
-                    "value": "nv12",
-                    "label": "nv12 - A variation of YUV 4:2:0 with a different layout, often used in hardware-accelerated encoding paths",
-                },
-                {
-                    "value": "p010le",
-                    "label": "p010le - A 10-bit YUV 4:2:0 format, often used for high dynamic range (HDR) content",
-                },
-                {
-                    "value": "p016le",
-                    "label": "p016le - A 10-bit version of YUV 4:2:0, similar to p010le but with different bit depth handling",
-                },
-                {
-                    "value": "yuv420p10le",
-                    "label": "yuv420p10le - A 10-bit version of YUV 4:2:0",
-                },
-                {
-                    "value": "yuv444p16le",
-                    "label": "yuv444p16le - A 16-bit version of YUV 4:4:4, offering very high color fidelity",
-                },
-            ]
-        }
-        self.__set_default_option(values['select_options'], 'pixel_format', default_option='auto')
         if self.settings.get_setting('mode') not in ['standard']:
             values["display"] = "hidden"
         return values
