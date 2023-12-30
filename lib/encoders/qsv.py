@@ -33,23 +33,26 @@ Notes:
 
 
 class QsvEncoder:
-    provides = {
-        "h264_qsv": {
-            "codec": "h264",
-            "label": "QSV - h264_qsv",
-        },
-        "hevc_qsv": {
-            "codec": "hevc",
-            "label": "QSV - hevc_qsv",
-        },
-        "av1_qsv":  {
-            "codec": "av1",
-            "label": "QSV - av1_qsv",
-        },
-    }
 
     def __init__(self, settings):
         self.settings = settings
+
+    @staticmethod
+    def provides():
+        return {
+            "h264_qsv": {
+                "codec": "h264",
+                "label": "QSV - h264_qsv",
+            },
+            "hevc_qsv": {
+                "codec": "hevc",
+                "label": "QSV - hevc_qsv",
+            },
+            "av1_qsv":  {
+                "codec": "av1",
+                "label": "QSV - av1_qsv",
+            },
+        }
 
     @staticmethod
     def options():
@@ -117,7 +120,8 @@ class QsvEncoder:
         return generic_kwargs, advanced_kwargs, filter_args
 
     def encoder_details(self, encoder):
-        return self.provides.get(encoder, {})
+        provides = self.provides()
+        return provides.get(encoder, {})
 
     def args(self, stream_id):
         stream_encoding = []

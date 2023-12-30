@@ -89,19 +89,22 @@ def get_configured_device(settings):
 
 
 class NvencEncoder:
-    provides = {
-        "h264_nvenc": {
-            "codec": "h264",
-            "label": "NVENC - h264_nvenc",
-        },
-        "hevc_nvenc": {
-            "codec": "hevc",
-            "label": "NVENC - hevc_nvenc",
-        },
-    }
 
     def __init__(self, settings):
         self.settings = settings
+
+    @staticmethod
+    def provides():
+        return {
+            "h264_nvenc": {
+                "codec": "h264",
+                "label": "NVENC - h264_nvenc",
+            },
+            "hevc_nvenc": {
+                "codec": "hevc",
+                "label": "NVENC - hevc_nvenc",
+            },
+        }
 
     @staticmethod
     def options():
@@ -166,7 +169,8 @@ class NvencEncoder:
         if not hardware_devices:
             # Return no options. No hardware device was found
             return {}
-        return self.provides.get(encoder, {})
+        provides = self.provides()
+        return provides.get(encoder, {})
 
     def args(self, stream_info, stream_id):
         generic_kwargs = {}

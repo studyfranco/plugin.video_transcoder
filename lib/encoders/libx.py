@@ -24,19 +24,22 @@
 
 
 class LibxEncoder:
-    provides = {
-        "libx264": {
-            "codec": "h264",
-            "label": "CPU - libx264",
-        },
-        "libx265": {
-            "codec": "hevc",
-            "label": "CPU - libx265",
-        },
-    }
 
     def __init__(self, settings):
         self.settings = settings
+
+    @staticmethod
+    def provides():
+        return {
+            "libx264": {
+                "codec": "h264",
+                "label": "CPU - libx264",
+            },
+            "libx265": {
+                "codec": "hevc",
+                "label": "CPU - libx265",
+            },
+        }
 
     @staticmethod
     def options():
@@ -73,7 +76,8 @@ class LibxEncoder:
         return []
 
     def encoder_details(self, encoder):
-        return self.provides.get(encoder, {})
+        provides = self.provides()
+        return provides.get(encoder, {})
 
     def args(self, stream_id):
         stream_encoding = []
