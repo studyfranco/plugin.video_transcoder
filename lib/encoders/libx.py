@@ -61,8 +61,7 @@ class LibxEncoder:
         advanced_kwargs = {}
         return generic_kwargs, advanced_kwargs
 
-    @staticmethod
-    def generate_filtergraphs():
+    def generate_filtergraphs(self):
         """
         Generate the required filter for this encoder
         No filters are required for libx encoders
