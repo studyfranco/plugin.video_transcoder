@@ -51,8 +51,7 @@ class VaapiEncoder:
     def __init__(self, settings):
         self.settings = settings
 
-    @staticmethod
-    def provides():
+    def provides(self):
         return {
             "h264_vaapi": {
                 "codec": "h264",
@@ -64,8 +63,7 @@ class VaapiEncoder:
             },
         }
 
-    @staticmethod
-    def options():
+    def options(self):
         return {
             "vaapi_device":                     "none",
             "vaapi_enabled_hw_decoding":        True,
@@ -75,12 +73,10 @@ class VaapiEncoder:
             "vaapi_average_bitrate":            "5",
         }
 
-    @staticmethod
-    def generate_default_args(settings):
+    def generate_default_args(self):
         """
         Generate a list of args for using a VAAPI decoder
 
-        :param settings:
         :return:
         """
         # Set the hardware device
@@ -91,10 +87,10 @@ class VaapiEncoder:
 
         hardware_device = None
         # If we have configured a hardware device
-        if settings.get_setting('vaapi_device') not in ['none']:
+        if self.settings.get_setting('vaapi_device') not in ['none']:
             # Attempt to match to that configured hardware device
             for hw_device in hardware_devices:
-                if settings.get_setting('vaapi_device') == hw_device.get('hwaccel_device'):
+                if self.settings.get_setting('vaapi_device') == hw_device.get('hwaccel_device'):
                     hardware_device = hw_device
                     break
         # If no matching hardware device is set, then select the first one
@@ -102,7 +98,7 @@ class VaapiEncoder:
             hardware_device = hardware_devices[0]
 
         # Check if we are using a VAAPI decoder also...
-        if settings.get_setting('vaapi_enabled_hw_decoding'):
+        if self.settings.get_setting('vaapi_enabled_hw_decoding'):
             # Set a named global device that can be used with various params
             dev_id = 'vaapi0'
             # Configure args such that when the input may or may not be able to be decoded with hardware we can do:
@@ -126,8 +122,7 @@ class VaapiEncoder:
 
         return generic_kwargs, advanced_kwargs
 
-    @staticmethod
-    def generate_filtergraphs():
+    def generate_filtergraphs(self):
         """
         Generate the required filter for enabling VAAPI HW acceleration
 

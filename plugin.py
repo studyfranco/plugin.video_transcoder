@@ -96,9 +96,10 @@ class Settings(PluginSettings):
             VaapiEncoder,
             NvencEncoder,
         ]
-        for encoder_lib in encoder_libs:
+        for encoder_class in encoder_libs:
+            encoder_lib = encoder_class(self)
             for encoder in encoder_lib.provides():
-                return_encoders[encoder] = encoder_lib(self)
+                return_encoders[encoder] = encoder_lib
         return return_encoders
 
     def __encoder_settings_object(self):

@@ -37,8 +37,7 @@ class QsvEncoder:
     def __init__(self, settings):
         self.settings = settings
 
-    @staticmethod
-    def provides():
+    def provides(self):
         return {
             "h264_qsv": {
                 "codec": "h264",
@@ -54,8 +53,7 @@ class QsvEncoder:
             },
         }
 
-    @staticmethod
-    def options():
+    def options(self):
         return {
             "qsv_decoding_method":            "cpu",
             "qsv_preset":                     "slow",
@@ -66,8 +64,7 @@ class QsvEncoder:
             "qsv_average_bitrate":            "5",
         }
 
-    @staticmethod
-    def generate_default_args(settings):
+    def generate_default_args(self):
         """
         Generate a list of args for using a QSV decoder
 
@@ -82,7 +79,7 @@ class QsvEncoder:
         }
         advanced_kwargs = {}
         # Check if we are using a HW accelerated decoder> Modify args as required
-        if settings.get_setting('qsv_decoding_method') in ['qsv']:
+        if self.settings.get_setting('qsv_decoding_method') in ['qsv']:
             generic_kwargs = {
                 "-hwaccel":               "qsv",
                 "-hwaccel_output_format": "qsv",
@@ -91,8 +88,7 @@ class QsvEncoder:
             }
         return generic_kwargs, advanced_kwargs
 
-    @staticmethod
-    def generate_filtergraphs(settings, software_filters, hw_smart_filters):
+    def generate_filtergraphs(self, settings, software_filters, hw_smart_filters):
         """
         Generate the required filter for enabling QSV HW acceleration
 

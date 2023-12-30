@@ -28,8 +28,7 @@ class LibxEncoder:
     def __init__(self, settings):
         self.settings = settings
 
-    @staticmethod
-    def provides():
+    def provides(self):
         return {
             "libx264": {
                 "codec": "h264",
@@ -41,8 +40,7 @@ class LibxEncoder:
             },
         }
 
-    @staticmethod
-    def options():
+    def options(self):
         return {
             "preset":                     "slow",
             "tune":                       "disabled",
@@ -52,12 +50,10 @@ class LibxEncoder:
             "average_bitrate":            "5",
         }
 
-    @staticmethod
-    def generate_default_args(settings):
+    def generate_default_args(self):
         """
         Generate a list of args for using a libx decoder
 
-        :param settings:
         :return:
         """
         # No default args required
